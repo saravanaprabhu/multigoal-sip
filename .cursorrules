@@ -1,0 +1,356 @@
+# Multi-Goal SIP Planner - Cursor Context
+
+## Project Overview
+
+A modular web application for planning multiple financial goals using Systematic Investment Plans (SIPs). Built with vanilla JavaScript following SOLID principles for maintainability and testability.
+
+## Architecture Philosophy
+
+This codebase strictly follows SOLID principles with clear separation of concerns:
+
+- **No monolithic files**: Each module has a single, well-defined responsibility
+- **Dependency injection**: Dependencies are injected rather than created internally
+- **Pure functions**: Business logic avoids side effects where possible
+- **Modular design**: Changes to one module don't require changes to others
+
+## Module Structure
+
+### Core Modules
+
+#### `js/goal.js` - Data Layer
+**What it does**: Manages goal data and CRUD operations
+**What it doesn't do**: No UI logic, no calculations, no formatting
+**Key class**: `GoalManager`
+**Goal Properties**: name, currentPrice, inflationRate, years, expectedReturn
+**When to modify**: Adding new goal properties or data operations
+
+#### `js/calculator.js` - Business Logic
+**What it does**: All financial calculations and business rules including inflation adjustment
+**What it doesn't do**: No DOM manipulation, no data storage, no formatting
+**Key class**: `SIPCalculator`
+**Key Methods**: 
+- `calculateInflationAdjustedAmount()` - Adjusts current price for future inflation
+- `calculateMonthlySIP()` - Calculates required monthly investment
+- `calculateSummary()` - Aggregates all goal calculations
+**When to modify**: Adding new calculation methods or financial formulas
+**Important**: All methods are pure functions - no side effects
+
+#### `js/formatter.js` - Presentation Utilities
+**What it does**: Formats data for display (currency, percentages, dates)
+**What it doesn't do**: No calculations, no UI rendering, no data manipulation
+**Key class**: `Formatter`
+**When to modify**: Adding new display formats or localization
+
+#### `js/ui.js` - View Layer
+**What it does**: DOM manipulation and rendering
+**What it doesn't do**: No business logic, no data storage
+**Key class**: `UIRenderer`
+**Dependencies**: Receives `SIPCalculator` and `Formatter` via constructor
+**When to modify**: Changing UI layout or adding new display elements
+
+#### `js/app.js` - Application Controller
+**What it does**: Orchestrates modules and handles user events
+**What it doesn't do**: Minimal business logic - delegates to specialized modules
+**Key class**: `MultiGoalSIPApp`
+**When to modify**: Adding new event handlers or changing application flow
+
+## Development Guidelines
+
+### Adding New Features
+
+#### New Calculation Feature
+1. Add method to `SIPCalculator` in `calculator.js`
+2. If UI changes needed, update `UIRenderer` in `ui.js`
+3. If new data needed, update `GoalManager` in `goal.js`
+4. No changes to formatting or app orchestration needed
+
+Example: Adding inflation-adjusted calculations
+- Add `calculateInflationAdjustedSIP()` to `SIPCalculator`
+- Update form in `index.html` for inflation rate input
+- Update `UIRenderer.getFormValues()` to capture inflation rate
+- Update `UIRenderer.createGoalCard()` to display adjusted values
+
+#### New Display Format
+1. Add method to `Formatter` in `formatter.js`
+2. Use new formatter in `UIRenderer` in `ui.js`
+3. No changes to calculations or data layer needed
+
+Example: Adding date formatting
+- Add `formatDate()` to `Formatter`
+- Use `this.formatter.formatDate()` in `UIRenderer`
+
+#### New Goal Property
+1. Update `GoalManager.addGoal()` signature in `goal.js`
+2. Update form in `index.html`
+3. Update `UIRenderer.getFormValues()` in `ui.js`
+4. Update `UIRenderer.createGoalCard()` in `ui.js` to display new property
+5. Update `app.js` to pass new property when calling `addGoal()`
+
+### Code Standards
+
+#### ES6 Modules
+- Always use `import`/`export` syntax
+- Each class should be exported
+- Import only what you need
+
+```javascript
+// Good
+import { GoalManager } from './goal.js';
+
+// Avoid
+import * as Goal from './goal.js';
+```
+
+#### Class Structure
+```javascript
+/**
+ * Class description
+ */
+export class ClassName {
+    /**
+     * Constructor description
+     * @param {Type} paramName - Parameter description
+     */
+    constructor(paramName) {
+        this.property = paramName;
+    }
+
+    /**
+     * Method description
+     * @param {Type} paramName - Parameter description
+     * @returns {Type} Return value description
+     */
+    methodName(paramName) {
+        // Implementation
+    }
+}
+```
+
+#### JSDoc Comments
+- Every class must have a JSDoc comment
+- Every public method must have a JSDoc comment
+- Include `@param` for all parameters
+- Include `@returns` for return values
+- Include `@private` for internal methods
+- Follow Google's Technical Writing Style Guide
+
+#### Naming Conventions
+- **Classes**: PascalCase (e.g., `GoalManager`, `SIPCalculator`)
+- **Methods/Functions**: camelCase (e.g., `calculateMonthlySIP`, `addGoal`)
+- **Variables**: camelCase (e.g., `totalSIP`, `goalManager`)
+- **Constants**: UPPERCASE with underscores (e.g., `MAX_GOALS`)
+- **Files**: kebab-case (e.g., `goal.js`, `calculator.js`)
+
+### Testing Approach
+
+Each module is independently testable:
+
+```javascript
+// Testing goal.js
+const goalManager = new GoalManager();
+goalManager.addGoal('Test', 100000, 10, 12);
+assert(goalManager.getGoalCount() === 1);
+
+// Testing calculator.js
+const calculator = new SIPCalculator();
+const sip = calculator.calculateMonthlySIP(1000000, 10, 12);
+assert(sip === 4347); // Expected value
+
+// Testing formatter.js
+const formatter = new Formatter();
+assert(formatter.formatCurrency(100000) === '₹1,00,000');
+```
+
+### Dependency Injection Pattern
+
+**Always inject dependencies** rather than creating them internally:
+
+```javascript
+// Good - Dependencies injected
+export class UIRenderer {
+    constructor(calculator, formatter) {
+        this.calculator = calculator;
+        this.formatter = formatter;
+    }
+}
+
+// Bad - Dependencies created internally
+export class UIRenderer {
+    constructor() {
+        this.calculator = new SIPCalculator(); // Tight coupling!
+        this.formatter = new Formatter();       // Hard to test!
+    }
+}
+```
+
+### Pure Functions
+
+Keep calculation logic pure (no side effects):
+
+```javascript
+// Good - Pure function
+calculateMonthlySIP(targetAmount, years, annualRate) {
+    const n = years * 12;
+    const i = annualRate / 12 / 100;
+    return targetAmount / (((Math.pow(1 + i, n) - 1) / i) * (1 + i));
+}
+
+// Bad - Side effects
+calculateMonthlySIP(targetAmount, years, annualRate) {
+    this.lastCalculation = targetAmount; // Side effect!
+    document.getElementById('result').textContent = result; // DOM manipulation!
+    return result;
+}
+```
+
+## Common Tasks
+
+### Running the Application Locally
+```bash
+# Option 1: Python
+python3 -m http.server 8000
+
+# Option 2: Node.js
+npx http-server -p 8000
+
+# Then visit: http://localhost:8000
+```
+
+### File Modification Decision Tree
+
+**Need to change calculations?**
+→ Modify `calculator.js` only
+
+**Need to change how data looks?**
+→ Modify `formatter.js` only
+
+**Need to change UI layout?**
+→ Modify `ui.js` and/or `index.html`
+
+**Need to add/modify goal properties?**
+→ Modify `goal.js`, then `ui.js` for form/display
+
+**Need to add new user interactions?**
+→ Modify `app.js` for event handling, then relevant module for logic
+
+### Troubleshooting
+
+**Issue**: ES6 modules not loading
+**Solution**: Must use local server, not `file://` protocol
+
+**Issue**: Changes not reflecting
+**Solution**: Hard refresh (Cmd+Shift+R / Ctrl+Shift+F5)
+
+**Issue**: Calculator giving wrong results
+**Solution**: Check SIP formula in `calculator.js`, verify input types are numbers
+
+## Financial Formulas Reference
+
+The core financial formulas used in `calculator.js`:
+
+### 1. Inflation Adjustment Formula
+```
+Future Value = Current Price × (1 + inflation_rate)^years
+
+Example:
+- Current Price: ₹20,00,000
+- Inflation: 6% per year
+- Time: 15 years
+- Future Value: ₹20,00,000 × (1.06)^15 = ₹47,93,133
+```
+
+### 2. SIP Calculation Formula
+```
+Monthly SIP = FV / [((1 + i)^n - 1) / i) × (1 + i)]
+
+Where:
+- FV = Future Value (inflation-adjusted target amount)
+- i = Monthly interest rate (annual rate / 12 / 100)
+- n = Number of months (years × 12)
+
+Example:
+- Future Value: ₹47,93,133
+- Expected Return: 12% per year
+- Time: 15 years (180 months)
+- Monthly SIP: ₹10,123 (approximate)
+```
+
+### Workflow
+1. User enters current price and inflation rate
+2. System calculates inflation-adjusted future value
+3. System calculates required monthly SIP to reach that future value
+4. Both current and future values are displayed for transparency
+
+## File Dependencies Graph
+
+```
+app.js
+  ├── goal.js (GoalManager)
+  ├── calculator.js (SIPCalculator)
+  ├── formatter.js (Formatter)
+  └── ui.js (UIRenderer)
+        ├── calculator.js (injected)
+        └── formatter.js (injected)
+
+index.html
+  ├── styles.css
+  └── app.js (module)
+```
+
+## Extension Points
+
+### Easy to Add
+- New calculation methods (pure functions in `calculator.js`)
+- New formatters (methods in `formatter.js`)
+- New goal properties (update `goal.js` and `ui.js`)
+- New UI elements (update `ui.js` and `index.html`)
+
+### Moderate Effort
+- Local storage persistence (add service layer)
+- Data export (add export module)
+- Theming (add theme module)
+
+### Significant Refactor
+- Backend integration (add API service layer)
+- State management library (replace GoalManager)
+- Framework migration (React/Vue/Angular)
+
+## Best Practices Checklist
+
+When making changes, ensure:
+- [ ] Single Responsibility: Each module does one thing
+- [ ] Open/Closed: Extend, don't modify existing code
+- [ ] Dependency Injection: Inject dependencies in constructors
+- [ ] JSDoc comments for all public methods
+- [ ] No business logic in UI layer
+- [ ] No DOM manipulation in business logic
+- [ ] Pure functions for calculations
+- [ ] Meaningful variable and function names
+- [ ] Update README.md if adding new features
+- [ ] Test changes across all affected modules
+
+## Context for AI Assistants
+
+When asked to modify this codebase:
+1. Identify which module(s) need changes based on responsibility
+2. Maintain SOLID principles - don't mix concerns
+3. Use dependency injection pattern consistently
+4. Keep calculations pure and testable
+5. Add JSDoc comments for new code
+6. Suggest tests for new functionality
+7. Update README.md for significant changes
+
+## Technology Stack
+
+- **Vanilla JavaScript (ES6+)**: No frameworks or build tools
+- **ES6 Modules**: Native browser module system
+- **Tailwind CSS**: Utility-first CSS (CDN)
+- **Google Fonts**: Inter typeface
+- **No dependencies**: Zero npm packages, runs in browser
+
+## Browser Requirements
+
+- ES6 module support (Chrome 61+, Firefox 60+, Safari 11+, Edge 16+)
+- LocalStorage API (for future persistence features)
+- Intl.NumberFormat API (for currency formatting)
+

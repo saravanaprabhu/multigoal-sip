@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Goal SIP Planner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">Multi-Goal SIP Planner</h1>
+            <p class="text-gray-500 mt-2">Plan your financial goals with inflation-adjusted targets and calculate required monthly SIP investments.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column: Inputs & Configuration -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Summary Card -->
+                <div class="bg-indigo-600 text-white rounded-xl p-6 text-center sticky top-8">
+                    <p class="text-lg text-indigo-200">Total Monthly SIP Required</p>
+                    <h2 id="total-sip" class="text-4xl sm:text-5xl font-bold my-2">₹ 0</h2>
+                    <div class="mt-6 text-left text-sm bg-indigo-700 p-4 rounded-lg space-y-2">
+                        <div class="flex justify-between border-b border-indigo-500 pb-2">
+                           <span class="text-indigo-200">Total Future Value:</span> 
+                           <span id="total-future-value" class="font-semibold">₹ 0</span>
+                        </div>
+                        <div class="flex justify-between border-b border-indigo-500 pb-2">
+                           <span class="text-indigo-200">Total Investment:</span> 
+                           <span id="total-invested" class="font-semibold">₹ 0</span>
+                        </div>
+                        <div class="flex justify-between">
+                           <span class="text-indigo-200">Total Wealth Gain:</span>
+                           <span id="total-wealth-gained" class="font-semibold">₹ 0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Goal Form -->
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800">Add a New Goal</h3>
+                    <form id="add-goal-form" class="space-y-4">
+                        <div>
+                            <label for="goalName" class="block text-sm font-medium text-gray-700">Goal Name</label>
+                            <input type="text" id="goalName" placeholder="e.g., Child's Education" required class="mt-1 w-full p-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label for="currentPrice" class="block text-sm font-medium text-gray-700">Current Price (₹)</label>
+                            <input type="number" id="currentPrice" placeholder="e.g., 2000000" required class="mt-1 w-full p-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label for="inflationRate" class="block text-sm font-medium text-gray-700">Inflation Rate (% p.a.)</label>
+                            <input type="number" id="inflationRate" placeholder="e.g., 6" step="0.1" required class="mt-1 w-full p-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label for="timePeriod" class="block text-sm font-medium text-gray-700">Timeframe (Years)</label>
+                            <input type="number" id="timePeriod" placeholder="e.g., 15" required class="mt-1 w-full p-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label for="expectedReturn" class="block text-sm font-medium text-gray-700">Expected Returns (% p.a.)</label>
+                            <input type="number" id="expectedReturn" placeholder="e.g., 12" step="0.1" required class="mt-1 w-full p-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors">Add Goal</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Right Column: Goal List -->
+            <div id="goals-list" class="lg:col-span-2 space-y-4">
+                <!-- Goals will be dynamically added here -->
+                 <div class="text-center py-12 px-6 bg-white rounded-2xl shadow-lg">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2z" />
+                    </svg>
+                    <h3 class="mt-2 text-xl font-semibold text-gray-900">No goals yet</h3>
+                    <p class="mt-1 text-sm text-gray-500">Add your financial goals using the form on the left.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
+
