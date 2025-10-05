@@ -19,9 +19,38 @@
 export class GoalManager {
     /**
      * Creates a new GoalManager instance
+     * @param {Object} storageService - Optional storage service for persistence
      */
-    constructor() {
+    constructor(storageService = null) {
         this.goals = [];
+        this.storageService = storageService;
+    }
+
+    /**
+     * Loads goals from storage service if available
+     * @returns {boolean} True if goals were loaded successfully
+     */
+    loadFromStorage() {
+        if (!this.storageService) {
+            return false;
+        }
+
+        const loadedGoals = this.storageService.loadGoals();
+        this.goals = loadedGoals;
+        return true;
+    }
+
+    /**
+     * Saves goals to storage service if available
+     * @private
+     * @returns {boolean} True if goals were saved successfully
+     */
+    saveToStorage() {
+        if (!this.storageService) {
+            return false;
+        }
+
+        return this.storageService.saveGoals(this.goals);
     }
 
     /**
@@ -43,6 +72,7 @@ export class GoalManager {
             expectedReturn
         };
         this.goals.push(goal);
+        this.saveToStorage();
         return goal;
     }
 
@@ -54,7 +84,13 @@ export class GoalManager {
     removeGoal(goalId) {
         const initialLength = this.goals.length;
         this.goals = this.goals.filter(goal => goal.id !== goalId);
-        return this.goals.length < initialLength;
+        const wasRemoved = this.goals.length < initialLength;
+        
+        if (wasRemoved) {
+            this.saveToStorage();
+        }
+        
+        return wasRemoved;
     }
 
     /**
@@ -71,6 +107,15 @@ export class GoalManager {
      */
     getGoalCount() {
         return this.goals.length;
+    }
+
+    /**
+     * Clears all goals from the collection and storage
+     * @returns {boolean} True if goals were cleared successfully
+     */
+    clearAllGoals() {
+        this.goals = [];
+        return this.saveToStorage();
     }
 }
 

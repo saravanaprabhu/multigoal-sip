@@ -6,6 +6,8 @@ A modern, modular web application for planning multiple financial goals using Sy
 
 - **Multi-Goal Planning**: Add and manage multiple financial goals simultaneously
 - **Real-Time Calculations**: Instantly see required monthly SIP amounts
+- **Inflation Adjustment**: Calculate future costs based on expected inflation rates
+- **Persistent Storage**: Goals are automatically saved to localStorage
 - **Comprehensive Summary**: View total investment, future value, and wealth gains
 - **Modern UI**: Clean, responsive design built with Tailwind CSS
 - **Modular Architecture**: Built following SOLID principles for maintainability
@@ -83,6 +85,10 @@ This application uses ES6 modules (`import`/`export`), which require a server du
 
 4. **Remove Goals**: Click the × button on any goal card to remove it
 
+5. **Clear All Goals**: Use the "Clear All" button to remove all goals at once (with confirmation)
+
+6. **Automatic Persistence**: Your goals are automatically saved to your browser's localStorage and will be restored when you return
+
 ## Architecture
 
 The application follows SOLID principles with a modular architecture:
@@ -99,6 +105,7 @@ multigoal-sip/
     ├── goal.js         # Goal data management
     ├── calculator.js   # SIP calculation logic
     ├── formatter.js    # Data formatting utilities
+    ├── storage.js      # localStorage persistence service
     └── ui.js          # UI rendering and DOM manipulation
 ```
 
@@ -112,6 +119,13 @@ multigoal-sip/
 - `removeGoal(goalId)` - Removes a goal by ID
 - `getAllGoals()` - Returns all goals
 - `getGoalCount()` - Returns total number of goals
+- `clearAllGoals()` - Clears all goals
+- `loadFromStorage()` - Loads goals from storage service
+- `saveToStorage()` - Saves goals to storage service (private)
+
+**Dependencies**:
+- Optionally receives `StorageService` via dependency injection
+- Automatically persists changes when storage service is available
 
 **Goal Properties**:
 - `currentPrice` - Today's cost of the goal
@@ -121,8 +135,8 @@ multigoal-sip/
 
 **Design Principles**:
 - Single Responsibility: Only handles goal data operations
-- No dependencies on other modules
-- Pure data management logic
+- Dependency Injection: Storage service is optional and injected
+- No direct localStorage access - delegates to storage service
 
 #### `calculator.js` - Business Logic
 **Purpose**: Performs all financial calculations
@@ -177,6 +191,24 @@ Where:
 - Uses `Intl.NumberFormat` for locale-specific formatting
 - Extensible for additional formatting needs
 
+#### `storage.js` - Persistence Layer
+**Purpose**: Handles data persistence using browser's localStorage API
+
+**Class**: `StorageService`
+- `saveGoals(goals)` - Saves goals array to localStorage
+- `loadGoals()` - Loads goals array from localStorage
+- `clearGoals()` - Clears all stored goals
+- `isAvailable()` - Checks if localStorage is available
+- `getStorageSize()` - Gets size of stored data in bytes
+
+**Storage Key**: `multigoal-sip-goals` (configurable)
+
+**Design Principles**:
+- Single Responsibility: Only handles localStorage operations
+- Error handling: Gracefully handles storage errors
+- Validation: Validates loaded data before returning
+- No business logic: Pure storage operations only
+
 #### `ui.js` - View Layer
 **Purpose**: Handles all DOM manipulation and rendering
 
@@ -202,15 +234,27 @@ Where:
 
 **Class**: `MultiGoalSIPApp`
 - `constructor()` - Initializes all components
+- `checkStorageAvailability()` - Validates localStorage availability
+- `loadSavedGoals()` - Restores goals from storage on startup
 - `initializeEventListeners()` - Sets up event handlers
 - `handleAddGoal()` - Handles goal addition
 - `handleRemoveGoal(event)` - Handles goal removal
+- `handleClearAll()` - Handles clearing all goals
 - `render()` - Triggers UI render
+
+**Lifecycle**:
+1. Creates storage service
+2. Initializes goal manager with storage service
+3. Checks storage availability
+4. Loads saved goals from localStorage
+5. Sets up event listeners
+6. Renders initial state
 
 **Design Principles**:
 - Dependency Injection: Creates and injects dependencies
 - Event coordination: Manages user interactions
 - Minimal logic: Delegates to specialized modules
+- Graceful degradation: Works without localStorage
 
 ### SOLID Principles Applied
 
@@ -263,6 +307,7 @@ Each module has one clear responsibility:
 3. Update `UIRenderer.getFormValues()` in `ui.js` to capture new field
 4. Update card template in `UIRenderer.createGoalCard()` in `ui.js` to display new property
 5. Update `app.js` to pass new property when calling `addGoal()`
+6. No changes needed to storage - JSON serialization handles new properties automatically
 
 **Example**: The inflation feature was added following these exact steps:
 - Added `inflationRate` parameter to `GoalManager.addGoal()`
@@ -270,6 +315,12 @@ Each module has one clear responsibility:
 - Updated `getFormValues()` to capture inflation rate
 - Added `calculateInflationAdjustedAmount()` to calculator
 - Updated card display to show both current and future values
+
+#### Adding Persistence to New Features
+The storage layer automatically persists any properties added to goals:
+- Add new properties to the goal object in `GoalManager.addGoal()`
+- Storage service handles serialization/deserialization automatically
+- No changes needed to `storage.js` for new goal properties
 
 ### Testing Strategy
 
@@ -307,18 +358,29 @@ The codebase follows these conventions:
 - Safari 11+
 - Edge 16+
 
+### Browser Storage
+
+- Uses localStorage API for data persistence
+- Storage limit: Typically 5-10MB per domain
+- Data persists across browser sessions
+- Graceful degradation: App works without localStorage (no persistence)
+- Clear browser data will remove saved goals
+
 ### Performance Considerations
 
 - Lightweight: No build process or heavy dependencies
 - Fast rendering: Efficient DOM manipulation
 - Minimal recalculations: Only updates when data changes
+- Automatic persistence: Goals saved immediately on add/remove
+- No network requests: All data stored locally
 
 ## Future Enhancements
 
 Potential features to add:
 - [x] Inflation adjustment for target amounts (✅ Implemented)
-- [ ] Local storage persistence for goals
+- [x] Local storage persistence for goals (✅ Implemented)
 - [ ] Export goals to CSV/PDF
+- [ ] Import goals from CSV/JSON
 - [ ] Visual charts showing investment growth over time
 - [ ] Step-up SIP calculations (increasing SIP annually)
 - [ ] Variable inflation rates (different rates for different years)

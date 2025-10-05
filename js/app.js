@@ -7,6 +7,7 @@ import { GoalManager } from './goal.js';
 import { SIPCalculator } from './calculator.js';
 import { Formatter } from './formatter.js';
 import { UIRenderer } from './ui.js';
+import { StorageService } from './storage.js';
 
 /**
  * Application class that orchestrates all components
@@ -16,13 +17,48 @@ class MultiGoalSIPApp {
      * Creates a new MultiGoalSIPApp instance
      */
     constructor() {
-        this.goalManager = new GoalManager();
+        this.storageService = new StorageService();
+        this.goalManager = new GoalManager(this.storageService);
         this.calculator = new SIPCalculator();
         this.formatter = new Formatter();
         this.ui = new UIRenderer(this.calculator, this.formatter);
         
+        this.checkStorageAvailability();
+        this.loadSavedGoals();
         this.initializeEventListeners();
         this.render();
+    }
+
+    /**
+     * Checks if localStorage is available and shows warning if not
+     * @private
+     */
+    checkStorageAvailability() {
+        if (!this.storageService.isAvailable()) {
+            console.warn('localStorage is not available. Goals will not be persisted.');
+            this.showStorageWarning();
+        }
+    }
+
+    /**
+     * Loads previously saved goals from storage
+     * @private
+     */
+    loadSavedGoals() {
+        const loaded = this.goalManager.loadFromStorage();
+        if (loaded && this.goalManager.getGoalCount() > 0) {
+            console.log(`Loaded ${this.goalManager.getGoalCount()} goal(s) from storage`);
+        }
+    }
+
+    /**
+     * Shows a warning message if storage is not available
+     * @private
+     */
+    showStorageWarning() {
+        // This could be enhanced with a UI notification
+        // For now, it just logs to console
+        console.warn('Data persistence is disabled. Your goals will be lost on page refresh.');
     }
 
     /**
@@ -32,6 +68,7 @@ class MultiGoalSIPApp {
     initializeEventListeners() {
         this.setupFormSubmission();
         this.setupGoalRemoval();
+        this.setupClearAll();
     }
 
     /**
@@ -55,6 +92,19 @@ class MultiGoalSIPApp {
         goalsListEl.addEventListener('click', (e) => {
             this.handleRemoveGoal(e);
         });
+    }
+
+    /**
+     * Sets up clear all goals button handler
+     * @private
+     */
+    setupClearAll() {
+        const clearAllBtn = document.getElementById('clear-all-btn');
+        if (clearAllBtn) {
+            clearAllBtn.addEventListener('click', () => {
+                this.handleClearAll();
+            });
+        }
     }
 
     /**
@@ -95,6 +145,23 @@ class MultiGoalSIPApp {
         const goalId = parseInt(removeBtn.dataset.id);
         this.goalManager.removeGoal(goalId);
         this.render();
+    }
+
+    /**
+     * Handles clearing all goals with confirmation
+     * @private
+     */
+    handleClearAll() {
+        if (this.goalManager.getGoalCount() === 0) {
+            return;
+        }
+
+        const confirmed = confirm('Are you sure you want to clear all goals? This action cannot be undone.');
+        
+        if (confirmed) {
+            this.goalManager.clearAllGoals();
+            this.render();
+        }
     }
 
     /**
