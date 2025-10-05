@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Goal SIP Planner - Test Runner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .console-output {
+            background: #1e1e1e;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .console-output::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .console-output::-webkit-scrollbar-track {
+            background: #2d2d2d;
+        }
+
+        .console-output::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        #test-results {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .test-report {
+            color: #333;
+        }
+
+        .report-header {
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .report-header h2 {
+            font-size: 2rem;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .timestamp {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            border-left: 4px solid;
+        }
+
+        .stat.total {
+            border-color: #667eea;
+        }
+
+        .stat.passed {
+            border-color: #10b981;
+        }
+
+        .stat.failed {
+            border-color: #ef4444;
+        }
+
+        .stat.skipped {
+            border-color: #94a3b8;
+        }
+
+        .stat .label {
+            display: block;
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat .value {
+            display: block;
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        .suite {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .suite-name {
+            font-size: 1.5rem;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .suite-stats {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .test-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .test-item {
+            background: white;
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border-left: 4px solid;
+        }
+
+        .test-item.passed {
+            border-color: #10b981;
+        }
+
+        .test-item.failed {
+            border-color: #ef4444;
+        }
+
+        .test-item.skipped {
+            border-color: #94a3b8;
+            opacity: 0.7;
+        }
+
+        .test-icon {
+            font-size: 1.2rem;
+        }
+
+        .test-description {
+            flex: 1;
+            color: #333;
+        }
+
+        .test-error {
+            background: #fee;
+            border: 1px solid #fcc;
+            border-radius: 4px;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #c00;
+            overflow-x: auto;
+        }
+
+        .loading {
+            text-align: center;
+            color: #667eea;
+            padding: 3rem;
+            font-size: 1.2rem;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(102, 126, 234, 0.2);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .back-link a {
+            color: white;
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            display: inline-block;
+            transition: background 0.3s;
+        }
+
+        .back-link a:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Multi-Goal SIP Planner</h1>
+            <p>Comprehensive Test Suite - Unit & Functional Tests</p>
+        </div>
+
+        <div class="console-output">
+            <p style="color: #10b981; font-family: monospace;">✓ Open browser console to see detailed test output</p>
+            <p style="color: #667eea; font-family: monospace;">• Press F12 or Cmd+Option+I (Mac) / Ctrl+Shift+I (Windows)</p>
+        </div>
+
+        <div id="test-results">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Running tests...</p>
+            </div>
+        </div>
+
+        <div class="back-link">
+            <a href="../index.html">← Back to Application</a>
+        </div>
+    </div>
+
+    <script type="module" src="./test-suite.js"></script>
+</body>
+</html>
+

@@ -49,41 +49,31 @@ This codebase strictly follows SOLID principles with clear separation of concern
 **What it doesn't do**: No business logic, no data transformation, no UI operations
 **Key class**: `StorageService`
 **Storage Keys**: `multigoal-sip-goals` (goals), `multigoal-sip-theme` (theme preference)
-**Key Methods**:
-- `saveGoals()` - Persists goals to localStorage
-- `loadGoals()` - Retrieves goals from localStorage
-- `isAvailable()` - Checks localStorage availability
-- `clearGoals()` - Removes all stored goals
 **When to modify**: Changing storage mechanism or adding storage utilities
 
 #### `js/exporter.js` - Data Export
 **What it does**: Exports goals to CSV and JSON formats with file download
-**What it doesn't do**: No data transformation, no calculations
 **Key class**: `Exporter`
 **When to modify**: Adding new export formats or customizing export data
 
 #### `js/importer.js` - Data Import
 **What it does**: Imports and validates goals from CSV and JSON files
-**What it doesn't do**: No UI operations, no goal creation (delegates to GoalManager)
 **Key class**: `Importer`
 **When to modify**: Adding new import formats or validation rules
 
 #### `js/templates.js` - Goal Templates
 **What it does**: Provides pre-configured goal templates
-**What it doesn't do**: No calculations, no UI, no persistence
 **Key class**: `TemplateManager`
 **Built-in Templates**: 8 common financial goals
 **When to modify**: Adding new templates or template properties
 
 #### `js/theme.js` - Theme Management
 **What it does**: Manages dark/light theme switching with persistence
-**What it doesn't do**: No UI rendering beyond theme class changes
 **Key class**: `ThemeManager`
 **When to modify**: Adding theme variants or changing theme behavior
 
 #### `js/charts.js` - Visualization
 **What it does**: Creates and manages Chart.js investment growth charts
-**What it doesn't do**: No data storage, delegates calculations to SIPCalculator
 **Key class**: `ChartManager`
 **Dependencies**: Chart.js 4.4.0 (CDN)
 **When to modify**: Adding new chart types or visualization features
@@ -111,29 +101,20 @@ This codebase strictly follows SOLID principles with clear separation of concern
 1. Add method to `SIPCalculator` in `calculator.js`
 2. If UI changes needed, update `UIRenderer` in `ui.js`
 3. If new data needed, update `GoalManager` in `goal.js`
-4. No changes to formatting or app orchestration needed
-
-Example: Adding inflation-adjusted calculations
-- Add `calculateInflationAdjustedSIP()` to `SIPCalculator`
-- Update form in `index.html` for inflation rate input
-- Update `UIRenderer.getFormValues()` to capture inflation rate
-- Update `UIRenderer.createGoalCard()` to display adjusted values
+4. Write tests in `tests/unit/calculator.test.js`
 
 #### New Display Format
 1. Add method to `Formatter` in `formatter.js`
 2. Use new formatter in `UIRenderer` in `ui.js`
-3. No changes to calculations or data layer needed
-
-Example: Adding date formatting
-- Add `formatDate()` to `Formatter`
-- Use `this.formatter.formatDate()` in `UIRenderer`
+3. Write tests in `tests/unit/formatter.test.js`
 
 #### New Goal Property
 1. Update `GoalManager.addGoal()` signature in `goal.js`
 2. Update form in `index.html`
-3. Update `UIRenderer.getFormValues()` in `ui.js`
-4. Update `UIRenderer.createGoalCard()` in `ui.js` to display new property
-5. Update `app.js` to pass new property when calling `addGoal()`
+3. Update `UIRenderer.getFormValues()` and `UIRenderer.createGoalCard()` in `ui.js`
+4. Update `app.js` to pass new property when calling `addGoal()`
+5. Update export/import modules to handle new property
+6. Write tests for the new property
 
 ### Code Standards
 
@@ -141,14 +122,6 @@ Example: Adding date formatting
 - Always use `import`/`export` syntax
 - Each class should be exported
 - Import only what you need
-
-```javascript
-// Good
-import { GoalManager } from './goal.js';
-
-// Avoid
-import * as Goal from './goal.js';
-```
 
 #### Class Structure
 ```javascript
@@ -180,7 +153,6 @@ export class ClassName {
 - Every public method must have a JSDoc comment
 - Include `@param` for all parameters
 - Include `@returns` for return values
-- Include `@private` for internal methods
 - Follow Google's Technical Writing Style Guide
 
 #### Naming Conventions
@@ -189,26 +161,6 @@ export class ClassName {
 - **Variables**: camelCase (e.g., `totalSIP`, `goalManager`)
 - **Constants**: UPPERCASE with underscores (e.g., `MAX_GOALS`)
 - **Files**: kebab-case (e.g., `goal.js`, `calculator.js`)
-
-### Testing Approach
-
-Each module is independently testable:
-
-```javascript
-// Testing goal.js
-const goalManager = new GoalManager();
-goalManager.addGoal('Test', 100000, 10, 12);
-assert(goalManager.getGoalCount() === 1);
-
-// Testing calculator.js
-const calculator = new SIPCalculator();
-const sip = calculator.calculateMonthlySIP(1000000, 10, 12);
-assert(sip === 4347); // Expected value
-
-// Testing formatter.js
-const formatter = new Formatter();
-assert(formatter.formatCurrency(100000) === '₹1,00,000');
-```
 
 ### Dependency Injection Pattern
 
@@ -227,7 +179,6 @@ export class UIRenderer {
 export class UIRenderer {
     constructor() {
         this.calculator = new SIPCalculator(); // Tight coupling!
-        this.formatter = new Formatter();       // Hard to test!
     }
 }
 ```
@@ -252,60 +203,11 @@ calculateMonthlySIP(targetAmount, years, annualRate) {
 }
 ```
 
-## Common Tasks
-
-### Running the Application Locally
-```bash
-# Option 1: Python
-python3 -m http.server 8000
-
-# Option 2: Node.js
-npx http-server -p 8000
-
-# Then visit: http://localhost:8000
-```
-
-### File Modification Decision Tree
-
-**Need to change calculations?**
-→ Modify `calculator.js` only
-
-**Need to change how data looks?**
-→ Modify `formatter.js` only
-
-**Need to change UI layout?**
-→ Modify `ui.js` and/or `index.html`
-
-**Need to add/modify goal properties?**
-→ Modify `goal.js`, then `ui.js` for form/display
-
-**Need to add new user interactions?**
-→ Modify `app.js` for event handling, then relevant module for logic
-
-### Troubleshooting
-
-**Issue**: ES6 modules not loading
-**Solution**: Must use local server, not `file://` protocol
-
-**Issue**: Changes not reflecting
-**Solution**: Hard refresh (Cmd+Shift+R / Ctrl+Shift+F5)
-
-**Issue**: Calculator giving wrong results
-**Solution**: Check SIP formula in `calculator.js`, verify input types are numbers
-
 ## Financial Formulas Reference
-
-The core financial formulas used in `calculator.js`:
 
 ### 1. Inflation Adjustment Formula
 ```
 Future Value = Current Price × (1 + inflation_rate)^years
-
-Example:
-- Current Price: ₹20,00,000
-- Inflation: 6% per year
-- Time: 15 years
-- Future Value: ₹20,00,000 × (1.06)^15 = ₹47,93,133
 ```
 
 ### 2. SIP Calculation Formula
@@ -316,19 +218,10 @@ Where:
 - FV = Future Value (inflation-adjusted target amount)
 - i = Monthly interest rate (annual rate / 12 / 100)
 - n = Number of months (years × 12)
-
-Example:
-- Future Value: ₹47,93,133
-- Expected Return: 12% per year
-- Time: 15 years (180 months)
-- Monthly SIP: ₹10,123 (approximate)
 ```
 
-### Workflow
-1. User enters current price and inflation rate
-2. System calculates inflation-adjusted future value
-3. System calculates required monthly SIP to reach that future value
-4. Both current and future values are displayed for transparency
+### 3. Step-up SIP Calculation
+Uses binary search to find initial SIP that reaches target with annual increments.
 
 ## File Dependencies Graph
 
@@ -381,30 +274,87 @@ index.html
 - State management library (replace GoalManager)
 - Framework migration (React/Vue/Angular)
 
-## Best Practices Checklist
+## Testing Framework
 
-When making changes, ensure:
-- [ ] Single Responsibility: Each module does one thing
-- [ ] Open/Closed: Extend, don't modify existing code
-- [ ] Dependency Injection: Inject dependencies in constructors
-- [ ] JSDoc comments for all public methods
-- [ ] No business logic in UI layer
-- [ ] No DOM manipulation in business logic
-- [ ] Pure functions for calculations
-- [ ] Meaningful variable and function names
-- [ ] Update README.md if adding new features
-- [ ] Test changes across all affected modules
+### Overview
+**280+ tests** with ~85% code coverage. Custom vanilla JavaScript framework (zero dependencies).
 
-## Context for AI Assistants
+### Test Structure
+```
+tests/
+├── test-runner.js        # Custom framework (440 lines)
+├── test-suite.js         # Test orchestration
+├── TESTING_GUIDE.md      # Complete docs (500+ lines)
+├── unit/                 # 9 files, 255+ tests
+└── functional/           # End-to-end tests (25+ tests)
+```
 
-When asked to modify this codebase:
-1. Identify which module(s) need changes based on responsibility
-2. Maintain SOLID principles - don't mix concerns
-3. Use dependency injection pattern consistently
-4. Keep calculations pure and testable
-5. Add JSDoc comments for new code
-6. Suggest tests for new functionality
-7. Update README.md for significant changes
+### Running Tests
+```bash
+python3 -m http.server 8000
+# Open: http://localhost:8000/tests/
+```
+
+### Key Testing Rules
+
+**Test Organization:**
+- Group tests with nested `describe()` blocks
+- Use descriptive names: `'should calculate SIP correctly for 10 years'`
+- One assertion per test when possible
+- Keep tests independent
+
+**Writing Tests:**
+```javascript
+export function runMyModuleTests(runner) {
+    runner.describe('MyModule', () => {
+        const beforeEach = () => { /* setup */ };
+        
+        runner.it('should do something', () => {
+            beforeEach();
+            assertEqual(actual, expected);
+        });
+    });
+}
+```
+
+**Assertions (15+ available):**
+- `assertEqual()`, `assertDeepEqual()`, `assertApproximately()`
+- `assertTrue()`, `assertNull()`, `assertThrows()`
+- `assertLength()`, `assertContains()`, `assertGreaterThan()`
+
+**Mocking:**
+```javascript
+const mockFn = MockHelper.mockFunction();
+const mockStorage = MockHelper.mockLocalStorage();
+const spy = MockHelper.spy(originalFunction);
+```
+
+**What to Test:**
+- ✅ All public methods, pure functions, edge cases
+- ✅ Error handling, state changes, calculations
+- ❌ External libraries, browser APIs, trivial getters
+
+**When Making Changes:**
+1. Write tests first (TDD recommended)
+2. Run existing tests to ensure no regressions
+3. Maintain coverage at current level or higher
+4. Update tests only when behavior intentionally changes
+
+**Debugging Tests:**
+- View results in browser UI + console (F12)
+- Use `assertApproximately()` for floats
+- Use `assertDeepEqual()` for objects/arrays
+- Reset mocks in `afterEach()` to avoid test pollution
+
+### Module-Specific Testing Patterns
+
+**Calculator:** Use `assertApproximately()` for floats, test edge cases (0 years, large amounts)
+**Storage:** Mock localStorage, test error handling (quota, invalid JSON)
+**Import/Export:** Test CSV parsing (quoted fields, whitespace), async operations
+**Theme:** Mock matchMedia and localStorage, test system preference detection
+**Charts:** Test data generation, handle missing Chart.js gracefully
+
+**Full docs:** `tests/TESTING_GUIDE.md`
 
 ## Technology Stack
 
@@ -424,3 +374,29 @@ When asked to modify this codebase:
 - **CSS Grid & Flexbox**: For responsive layout
 - **CSS Custom Properties**: For theming
 
+## Best Practices Checklist
+
+When making changes, ensure:
+- [ ] Single Responsibility: Each module does one thing
+- [ ] Open/Closed: Extend, don't modify existing code
+- [ ] Dependency Injection: Inject dependencies in constructors
+- [ ] JSDoc comments for all public methods
+- [ ] No business logic in UI layer
+- [ ] No DOM manipulation in business logic
+- [ ] Pure functions for calculations
+- [ ] Meaningful variable and function names
+- [ ] Write tests for new features
+- [ ] All tests pass before committing
+- [ ] Update README.md if adding new features
+
+## Context for AI Assistants
+
+When asked to modify this codebase:
+1. Identify which module(s) need changes based on responsibility
+2. Maintain SOLID principles - don't mix concerns
+3. Use dependency injection pattern consistently
+4. Keep calculations pure and testable
+5. Add JSDoc comments for new code
+6. Write tests for new functionality (see `tests/TESTING_GUIDE.md`)
+7. Update README.md for significant changes
+8. Follow existing patterns and naming conventions
