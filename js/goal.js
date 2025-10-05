@@ -11,6 +11,7 @@
  * @property {number} inflationRate - Expected annual inflation rate percentage
  * @property {number} years - Time period in years
  * @property {number} expectedReturn - Expected annual return percentage
+ * @property {number} [stepUpRate] - Optional annual SIP increase rate percentage
  */
 
 /**
@@ -60,16 +61,18 @@ export class GoalManager {
      * @param {number} inflationRate - Expected annual inflation rate percentage
      * @param {number} years - Time period in years
      * @param {number} expectedReturn - Expected annual return percentage
+     * @param {number} [stepUpRate] - Optional annual SIP increase rate percentage
      * @returns {Goal} The newly created goal
      */
-    addGoal(name, currentPrice, inflationRate, years, expectedReturn) {
+    addGoal(name, currentPrice, inflationRate, years, expectedReturn, stepUpRate = 0) {
         const goal = {
             id: Date.now(),
             name,
             currentPrice,
             inflationRate,
             years,
-            expectedReturn
+            expectedReturn,
+            stepUpRate: stepUpRate || 0
         };
         this.goals.push(goal);
         this.saveToStorage();

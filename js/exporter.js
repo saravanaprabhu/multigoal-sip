@@ -32,6 +32,7 @@ export class Exporter {
             'Inflation Rate (%)',
             'Years',
             'Expected Return (%)',
+            'Step-up Rate (%)',
             'Future Target (₹)',
             'Monthly SIP Required (₹)',
             'Total Investment (₹)',
@@ -40,6 +41,7 @@ export class Exporter {
 
         // Create CSV rows
         const rows = goals.map(goal => {
+            const stepUpRate = goal.stepUpRate || 0;
             const futureValue = this.calculator.calculateInflationAdjustedAmount(
                 goal.currentPrice,
                 goal.inflationRate,
@@ -48,9 +50,10 @@ export class Exporter {
             const monthlySIP = this.calculator.calculateMonthlySIP(
                 futureValue,
                 goal.years,
-                goal.expectedReturn
+                goal.expectedReturn,
+                stepUpRate
             );
-            const totalInvestment = this.calculator.calculateTotalInvestment(monthlySIP, goal.years);
+            const totalInvestment = this.calculator.calculateTotalInvestment(monthlySIP, goal.years, stepUpRate);
             const wealthGain = this.calculator.calculateWealthGain(futureValue, totalInvestment);
 
             return [
@@ -59,6 +62,7 @@ export class Exporter {
                 goal.inflationRate,
                 goal.years,
                 goal.expectedReturn,
+                stepUpRate,
                 futureValue,
                 monthlySIP,
                 totalInvestment,

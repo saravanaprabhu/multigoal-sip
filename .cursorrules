@@ -21,16 +21,19 @@ This codebase strictly follows SOLID principles with clear separation of concern
 **What it does**: Manages goal data and CRUD operations
 **What it doesn't do**: No UI logic, no calculations, no formatting
 **Key class**: `GoalManager`
-**Goal Properties**: name, currentPrice, inflationRate, years, expectedReturn
+**Goal Properties**: name, currentPrice, inflationRate, years, expectedReturn, stepUpRate
 **When to modify**: Adding new goal properties or data operations
 
 #### `js/calculator.js` - Business Logic
-**What it does**: All financial calculations and business rules including inflation adjustment
+**What it does**: All financial calculations and business rules including inflation and step-up SIP
 **What it doesn't do**: No DOM manipulation, no data storage, no formatting
 **Key class**: `SIPCalculator`
 **Key Methods**: 
 - `calculateInflationAdjustedAmount()` - Adjusts current price for future inflation
-- `calculateMonthlySIP()` - Calculates required monthly investment
+- `calculateMonthlySIP()` - Calculates required monthly investment (supports step-up)
+- `calculateStepUpSIP()` - Calculates initial SIP for annual increment plans (binary search)
+- `calculateStepUpFutureValue()` - Calculates FV for step-up SIP
+- `calculateTotalInvestment()` - Calculates total invested (supports step-up)
 - `calculateSummary()` - Aggregates all goal calculations
 **When to modify**: Adding new calculation methods or financial formulas
 **Important**: All methods are pure functions - no side effects
@@ -45,11 +48,45 @@ This codebase strictly follows SOLID principles with clear separation of concern
 **What it does**: Handles localStorage operations for data persistence
 **What it doesn't do**: No business logic, no data transformation, no UI operations
 **Key class**: `StorageService`
+**Storage Keys**: `multigoal-sip-goals` (goals), `multigoal-sip-theme` (theme preference)
 **Key Methods**:
 - `saveGoals()` - Persists goals to localStorage
 - `loadGoals()` - Retrieves goals from localStorage
 - `isAvailable()` - Checks localStorage availability
+- `clearGoals()` - Removes all stored goals
 **When to modify**: Changing storage mechanism or adding storage utilities
+
+#### `js/exporter.js` - Data Export
+**What it does**: Exports goals to CSV and JSON formats with file download
+**What it doesn't do**: No data transformation, no calculations
+**Key class**: `Exporter`
+**When to modify**: Adding new export formats or customizing export data
+
+#### `js/importer.js` - Data Import
+**What it does**: Imports and validates goals from CSV and JSON files
+**What it doesn't do**: No UI operations, no goal creation (delegates to GoalManager)
+**Key class**: `Importer`
+**When to modify**: Adding new import formats or validation rules
+
+#### `js/templates.js` - Goal Templates
+**What it does**: Provides pre-configured goal templates
+**What it doesn't do**: No calculations, no UI, no persistence
+**Key class**: `TemplateManager`
+**Built-in Templates**: 8 common financial goals
+**When to modify**: Adding new templates or template properties
+
+#### `js/theme.js` - Theme Management
+**What it does**: Manages dark/light theme switching with persistence
+**What it doesn't do**: No UI rendering beyond theme class changes
+**Key class**: `ThemeManager`
+**When to modify**: Adding theme variants or changing theme behavior
+
+#### `js/charts.js` - Visualization
+**What it does**: Creates and manages Chart.js investment growth charts
+**What it doesn't do**: No data storage, delegates calculations to SIPCalculator
+**Key class**: `ChartManager`
+**Dependencies**: Chart.js 4.4.0 (CDN)
+**When to modify**: Adding new chart types or visualization features
 
 #### `js/ui.js` - View Layer
 **What it does**: DOM manipulation and rendering
@@ -59,10 +96,11 @@ This codebase strictly follows SOLID principles with clear separation of concern
 **When to modify**: Changing UI layout or adding new display elements
 
 #### `js/app.js` - Application Controller
-**What it does**: Orchestrates modules, handles user events, manages application lifecycle
+**What it does**: Orchestrates all modules, handles all user events, manages complete application lifecycle
 **What it doesn't do**: Minimal business logic - delegates to specialized modules
 **Key class**: `MultiGoalSIPApp`
-**Lifecycle**: Creates dependencies → Loads stored data → Initializes UI → Sets up events
+**Lifecycle**: Creates dependencies → Initializes theme → Loads stored data → Sets up all event handlers → Renders UI and charts
+**Event Handlers**: Form submission, goal removal, clear all, export, import, templates, theme toggle
 **When to modify**: Adding new event handlers or changing application flow
 
 ## Development Guidelines
@@ -295,19 +333,30 @@ Example:
 ## File Dependencies Graph
 
 ```
-app.js
+app.js (Main Orchestrator)
   ├── storage.js (StorageService)
+  ├── theme.js (ThemeManager)
+  │     └── storage.js (injected)
   ├── goal.js (GoalManager)
   │     └── storage.js (injected)
   ├── calculator.js (SIPCalculator)
   ├── formatter.js (Formatter)
+  ├── exporter.js (Exporter)
+  │     └── calculator.js (injected)
+  ├── importer.js (Importer)
+  ├── templates.js (TemplateManager)
+  ├── charts.js (ChartManager)
+  │     ├── calculator.js (injected)
+  │     └── formatter.js (injected)
   └── ui.js (UIRenderer)
         ├── calculator.js (injected)
         └── formatter.js (injected)
 
 index.html
   ├── styles.css
-  └── app.js (module)
+  ├── Chart.js (CDN - 4.4.0)
+  ├── Tailwind CSS (CDN - 3.x)
+  └── app.js (ES6 module)
 ```
 
 ## Extension Points
@@ -315,14 +364,17 @@ index.html
 ### Easy to Add
 - New calculation methods (pure functions in `calculator.js`)
 - New formatters (methods in `formatter.js`)
-- New goal properties (update `goal.js` and `ui.js` - storage handles automatically)
-- New UI elements (update `ui.js` and `index.html`)
+- New goal templates (add to `templates.js`)
+- New export formats (extend `exporter.js`)
+- New chart types (extend `charts.js`)
+- New goal properties (update `goal.js`, `ui.js`, export/import modules)
 
 ### Moderate Effort
-- Data export (add export module using existing storage data)
-- Data import (add import module, use storage service to persist)
-- Theming (add theme module)
-- Cloud sync (replace/extend StorageService)
+- Variable inflation rates (year-by-year rates in calculator)
+- Multiple currencies (add to formatter and calculator)
+- Goal milestones (extend goal.js and add UI)
+- Cloud sync (replace/extend StorageService with API calls)
+- PDF export (add new module using jsPDF or similar)
 
 ### Significant Refactor
 - Backend integration (add API service layer)
@@ -356,15 +408,19 @@ When asked to modify this codebase:
 
 ## Technology Stack
 
-- **Vanilla JavaScript (ES6+)**: No frameworks or build tools
-- **ES6 Modules**: Native browser module system
-- **Tailwind CSS**: Utility-first CSS (CDN)
+- **Vanilla JavaScript (ES6+)**: Modules, classes, async/await, arrow functions
+- **ES6 Modules**: Native browser module system (import/export)
+- **Tailwind CSS 3.x**: Utility-first CSS with dark mode (CDN)
+- **Chart.js 4.4.0**: Interactive charts and visualizations (CDN)
 - **Google Fonts**: Inter typeface
-- **No dependencies**: Zero npm packages, runs in browser
+- **No build tools**: Zero npm packages, runs directly in browser
 
 ## Browser Requirements
 
-- ES6 module support (Chrome 61+, Firefox 60+, Safari 11+, Edge 16+)
-- LocalStorage API (for future persistence features)
-- Intl.NumberFormat API (for currency formatting)
+- **ES6 module support**: Chrome 61+, Firefox 60+, Safari 11+, Edge 16+
+- **LocalStorage API**: For goal and theme persistence
+- **Intl.NumberFormat API**: For currency formatting
+- **Canvas API**: For Chart.js rendering
+- **CSS Grid & Flexbox**: For responsive layout
+- **CSS Custom Properties**: For theming
 

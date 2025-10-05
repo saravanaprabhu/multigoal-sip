@@ -11,6 +11,8 @@ import { StorageService } from './storage.js';
 import { Exporter } from './exporter.js';
 import { Importer } from './importer.js';
 import { TemplateManager } from './templates.js';
+import { ThemeManager } from './theme.js';
+import { ChartManager } from './charts.js';
 
 /**
  * Application class that orchestrates all components
@@ -21,14 +23,17 @@ class MultiGoalSIPApp {
      */
     constructor() {
         this.storageService = new StorageService();
+        this.themeManager = new ThemeManager(this.storageService);
         this.goalManager = new GoalManager(this.storageService);
         this.calculator = new SIPCalculator();
         this.formatter = new Formatter();
         this.exporter = new Exporter(this.calculator);
         this.importer = new Importer();
         this.templateManager = new TemplateManager();
+        this.chartManager = new ChartManager(this.calculator, this.formatter);
         this.ui = new UIRenderer(this.calculator, this.formatter);
         
+        this.themeManager.initialize();
         this.checkStorageAvailability();
         this.loadSavedGoals();
         this.initializeEventListeners();
@@ -78,6 +83,7 @@ class MultiGoalSIPApp {
         this.setupExport();
         this.setupImport();
         this.setupTemplates();
+        this.setupThemeToggle();
     }
 
     /**
@@ -176,6 +182,42 @@ class MultiGoalSIPApp {
     }
 
     /**
+     * Sets up theme toggle button handler
+     * @private
+     */
+    setupThemeToggle() {
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        
+        if (themeToggleBtn) {
+            // Update button icon based on current theme
+            this.updateThemeToggleIcon();
+
+            themeToggleBtn.addEventListener('click', () => {
+                this.handleThemeToggle();
+            });
+        }
+    }
+
+    /**
+     * Updates theme toggle button icon
+     * @private
+     */
+    updateThemeToggleIcon() {
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        const currentTheme = this.themeManager.getCurrentTheme();
+        
+        if (themeToggleBtn) {
+            themeToggleBtn.innerHTML = currentTheme === 'dark' 
+                ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>`
+                : `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>`;
+        }
+    }
+
+    /**
      * Handles adding a new goal
      * @private
      */
@@ -191,7 +233,8 @@ class MultiGoalSIPApp {
             formValues.currentPrice,
             formValues.inflationRate,
             formValues.years,
-            formValues.expectedReturn
+            formValues.expectedReturn,
+            formValues.stepUpRate
         );
 
         this.ui.resetForm();
@@ -287,9 +330,26 @@ class MultiGoalSIPApp {
         document.getElementById('inflationRate').value = goalData.inflationRate;
         document.getElementById('timePeriod').value = goalData.years;
         document.getElementById('expectedReturn').value = goalData.expectedReturn;
+        document.getElementById('stepUpRate').value = 0; // Reset step-up rate
 
         // Reset template selection
         templateSelect.selectedIndex = 0;
+    }
+
+    /**
+     * Handles theme toggle
+     * @private
+     */
+    handleThemeToggle() {
+        this.themeManager.toggleTheme();
+        this.updateThemeToggleIcon();
+        
+        // Update chart theme if goals exist
+        const goals = this.goalManager.getAllGoals();
+        if (goals.length > 0) {
+            const currentTheme = this.themeManager.getCurrentTheme();
+            this.chartManager.updateTheme(currentTheme, goals, 'investment-chart');
+        }
     }
 
     /**
@@ -346,7 +406,8 @@ class MultiGoalSIPApp {
                     goal.currentPrice,
                     goal.inflationRate,
                     goal.years,
-                    goal.expectedReturn
+                    goal.expectedReturn,
+                    goal.stepUpRate || 0
                 );
             });
 
@@ -369,6 +430,29 @@ class MultiGoalSIPApp {
     render() {
         const goals = this.goalManager.getAllGoals();
         this.ui.render(goals);
+        this.renderChart(goals);
+    }
+
+    /**
+     * Renders the investment growth chart
+     * @private
+     * @param {Array<Object>} goals - Array of goal objects
+     */
+    renderChart(goals) {
+        const chartContainer = document.getElementById('chart-container');
+        
+        if (!chartContainer) {
+            return;
+        }
+
+        if (goals.length === 0) {
+            chartContainer.classList.add('hidden');
+            this.chartManager.destroy();
+        } else {
+            chartContainer.classList.remove('hidden');
+            const currentTheme = this.themeManager.getCurrentTheme();
+            this.chartManager.createChart(goals, 'investment-chart', currentTheme);
+        }
     }
 }
 

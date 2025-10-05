@@ -72,14 +72,16 @@ export class UIRenderer {
             goal.years
         );
         
+        const stepUpRate = goal.stepUpRate || 0;
         const monthlySip = this.calculator.calculateMonthlySIP(
             inflationAdjustedAmount, 
             goal.years, 
-            goal.expectedReturn
+            goal.expectedReturn,
+            stepUpRate
         );
 
         const goalCard = document.createElement('div');
-        goalCard.className = 'goal-card bg-white p-5 rounded-2xl shadow-lg flex items-start space-x-4';
+        goalCard.className = 'goal-card bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-lg flex items-start space-x-4';
         goalCard.innerHTML = `
             <div class="flex-shrink-0 h-12 w-12 flex items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -88,20 +90,21 @@ export class UIRenderer {
             </div>
             <div class="flex-grow">
                 <div class="flex justify-between items-center">
-                    <h4 class="text-lg font-semibold text-gray-900">${goal.name}</h4>
-                    <button data-id="${goal.id}" class="remove-btn text-gray-400 hover:text-red-500 transition-colors">
+                    <h4 class="text-lg font-semibold text-gray-900 dark:text-white">${goal.name}</h4>
+                    <button data-id="${goal.id}" class="remove-btn text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
-                <div class="text-gray-500 text-sm space-y-1 mt-1">
+                <div class="text-gray-500 dark:text-gray-400 text-sm space-y-1 mt-1">
                     <p>Current Price: ${this.formatter.formatCurrency(goal.currentPrice)} | Inflation: ${goal.inflationRate}% p.a.</p>
                     <p>Future Target: ${this.formatter.formatCurrency(inflationAdjustedAmount)} in ${goal.years} years @ ${goal.expectedReturn}% return</p>
+                    ${stepUpRate > 0 ? `<p class="text-indigo-600 dark:text-indigo-400 font-medium">🔼 Step-up: ${stepUpRate}% annually</p>` : ''}
                 </div>
-                <div class="mt-3 bg-gray-50 p-3 rounded-lg flex justify-between items-center">
-                    <span class="text-sm font-medium text-gray-600">Required Monthly SIP</span>
-                    <span class="text-lg font-bold text-indigo-600">${this.formatter.formatCurrency(monthlySip)}</span>
+                <div class="mt-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg flex justify-between items-center">
+                    <span class="text-sm font-medium text-gray-600 dark:text-gray-300">${stepUpRate > 0 ? 'Initial' : 'Required'} Monthly SIP</span>
+                    <span class="text-lg font-bold text-indigo-600 dark:text-indigo-400">${this.formatter.formatCurrency(monthlySip)}</span>
                 </div>
             </div>
         `;
@@ -133,8 +136,13 @@ export class UIRenderer {
         const inflationRate = parseFloat(document.getElementById('inflationRate').value);
         const timePeriod = parseFloat(document.getElementById('timePeriod').value);
         const expectedReturn = parseFloat(document.getElementById('expectedReturn').value);
+        const stepUpRate = parseFloat(document.getElementById('stepUpRate').value) || 0;
 
         if (!goalName || currentPrice <= 0 || inflationRate < 0 || timePeriod <= 0 || expectedReturn <= 0) {
+            return null;
+        }
+
+        if (stepUpRate < 0) {
             return null;
         }
 
@@ -143,7 +151,8 @@ export class UIRenderer {
             currentPrice,
             inflationRate,
             years: timePeriod,
-            expectedReturn
+            expectedReturn,
+            stepUpRate
         };
     }
 

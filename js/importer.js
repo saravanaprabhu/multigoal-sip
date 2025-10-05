@@ -47,7 +47,8 @@ export class Importer {
                 currentPrice: parseFloat(values[1]),
                 inflationRate: parseFloat(values[2]),
                 years: parseFloat(values[3]),
-                expectedReturn: parseFloat(values[4])
+                expectedReturn: parseFloat(values[4]),
+                stepUpRate: values[5] ? parseFloat(values[5]) : 0
             };
 
             // Validate goal data
@@ -119,7 +120,8 @@ export class Importer {
                 currentPrice: parseFloat(goal.currentPrice),
                 inflationRate: parseFloat(goal.inflationRate),
                 years: parseFloat(goal.years),
-                expectedReturn: parseFloat(goal.expectedReturn)
+                expectedReturn: parseFloat(goal.expectedReturn),
+                stepUpRate: parseFloat(goal.stepUpRate) || 0
             };
 
             this.validateGoal(validatedGoal, index + 1);
