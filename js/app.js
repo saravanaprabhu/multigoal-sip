@@ -8,6 +8,9 @@ import { SIPCalculator } from './calculator.js';
 import { Formatter } from './formatter.js';
 import { UIRenderer } from './ui.js';
 import { StorageService } from './storage.js';
+import { Exporter } from './exporter.js';
+import { Importer } from './importer.js';
+import { TemplateManager } from './templates.js';
 
 /**
  * Application class that orchestrates all components
@@ -21,6 +24,9 @@ class MultiGoalSIPApp {
         this.goalManager = new GoalManager(this.storageService);
         this.calculator = new SIPCalculator();
         this.formatter = new Formatter();
+        this.exporter = new Exporter(this.calculator);
+        this.importer = new Importer();
+        this.templateManager = new TemplateManager();
         this.ui = new UIRenderer(this.calculator, this.formatter);
         
         this.checkStorageAvailability();
@@ -69,6 +75,9 @@ class MultiGoalSIPApp {
         this.setupFormSubmission();
         this.setupGoalRemoval();
         this.setupClearAll();
+        this.setupExport();
+        this.setupImport();
+        this.setupTemplates();
     }
 
     /**
@@ -103,6 +112,65 @@ class MultiGoalSIPApp {
         if (clearAllBtn) {
             clearAllBtn.addEventListener('click', () => {
                 this.handleClearAll();
+            });
+        }
+    }
+
+    /**
+     * Sets up export buttons handlers
+     * @private
+     */
+    setupExport() {
+        const exportCSVBtn = document.getElementById('export-csv-btn');
+        const exportJSONBtn = document.getElementById('export-json-btn');
+
+        if (exportCSVBtn) {
+            exportCSVBtn.addEventListener('click', () => {
+                this.handleExportCSV();
+            });
+        }
+
+        if (exportJSONBtn) {
+            exportJSONBtn.addEventListener('click', () => {
+                this.handleExportJSON();
+            });
+        }
+    }
+
+    /**
+     * Sets up import file input handler
+     * @private
+     */
+    setupImport() {
+        const importInput = document.getElementById('import-file-input');
+        
+        if (importInput) {
+            importInput.addEventListener('change', (e) => {
+                this.handleImport(e);
+            });
+        }
+    }
+
+    /**
+     * Sets up template selection handler
+     * @private
+     */
+    setupTemplates() {
+        const templateSelect = document.getElementById('template-select');
+        const useTemplateBtn = document.getElementById('use-template-btn');
+        
+        if (templateSelect && useTemplateBtn) {
+            // Populate template dropdown
+            const templates = this.templateManager.getAllTemplates();
+            templates.forEach(template => {
+                const option = document.createElement('option');
+                option.value = template.id;
+                option.textContent = `${template.icon} ${template.name}`;
+                templateSelect.appendChild(option);
+            });
+
+            useTemplateBtn.addEventListener('click', () => {
+                this.handleUseTemplate();
             });
         }
     }
@@ -161,6 +229,136 @@ class MultiGoalSIPApp {
         if (confirmed) {
             this.goalManager.clearAllGoals();
             this.render();
+        }
+    }
+
+    /**
+     * Handles exporting goals to CSV
+     * @private
+     */
+    handleExportCSV() {
+        const goals = this.goalManager.getAllGoals();
+        
+        if (goals.length === 0) {
+            alert('No goals to export. Add some goals first.');
+            return;
+        }
+
+        this.exporter.exportCSV(goals);
+    }
+
+    /**
+     * Handles exporting goals to JSON
+     * @private
+     */
+    handleExportJSON() {
+        const goals = this.goalManager.getAllGoals();
+        
+        if (goals.length === 0) {
+            alert('No goals to export. Add some goals first.');
+            return;
+        }
+
+        this.exporter.exportJSON(goals);
+    }
+
+    /**
+     * Handles using a goal template
+     * @private
+     */
+    handleUseTemplate() {
+        const templateSelect = document.getElementById('template-select');
+        const templateId = templateSelect.value;
+        
+        if (!templateId) {
+            return;
+        }
+
+        const goalData = this.templateManager.createGoalFromTemplate(templateId);
+        
+        if (!goalData) {
+            alert('Template not found');
+            return;
+        }
+
+        // Populate form with template values
+        document.getElementById('goalName').value = goalData.name;
+        document.getElementById('currentPrice').value = goalData.currentPrice;
+        document.getElementById('inflationRate').value = goalData.inflationRate;
+        document.getElementById('timePeriod').value = goalData.years;
+        document.getElementById('expectedReturn').value = goalData.expectedReturn;
+
+        // Reset template selection
+        templateSelect.selectedIndex = 0;
+    }
+
+    /**
+     * Handles importing goals from file
+     * @private
+     * @param {Event} event - Change event from file input
+     */
+    async handleImport(event) {
+        const file = event.target.files[0];
+        
+        if (!file) {
+            return;
+        }
+
+        try {
+            let importedGoals;
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+
+            if (fileExtension === 'csv') {
+                importedGoals = await this.importer.importCSV(file);
+            } else if (fileExtension === 'json') {
+                importedGoals = await this.importer.importJSON(file);
+            } else {
+                throw new Error('Unsupported file format. Please use CSV or JSON files.');
+            }
+
+            if (importedGoals.length === 0) {
+                alert('No valid goals found in the file.');
+                return;
+            }
+
+            // Ask user if they want to replace or merge
+            const existingCount = this.goalManager.getGoalCount();
+            let shouldProceed = true;
+
+            if (existingCount > 0) {
+                const action = confirm(
+                    `Found ${importedGoals.length} goal(s) in the file.\n\n` +
+                    `You have ${existingCount} existing goal(s).\n\n` +
+                    `Click OK to ADD imported goals to existing ones.\n` +
+                    `Click Cancel to REPLACE existing goals with imported ones.`
+                );
+
+                if (!action) {
+                    // User wants to replace
+                    this.goalManager.clearAllGoals();
+                }
+            }
+
+            // Add imported goals
+            importedGoals.forEach(goal => {
+                this.goalManager.addGoal(
+                    goal.name,
+                    goal.currentPrice,
+                    goal.inflationRate,
+                    goal.years,
+                    goal.expectedReturn
+                );
+            });
+
+            this.render();
+            alert(`Successfully imported ${importedGoals.length} goal(s)!`);
+
+        } catch (error) {
+            alert(`Import failed: ${error.message}`);
+            console.error('Import error:', error);
+        } finally {
+            // Reset file input
+            event.target.value = '';
         }
     }
 
